@@ -1,0 +1,806 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manual Express & Overflow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                    },
+                    colors: {
+                        primary: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            200: '#a7f3d0',
+                            300: '#6ee7b7',
+                            400: '#34d399',
+                            500: '#10b981',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', system-ui, sans-serif; }
+        * { transition: background-color 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease; }
+        ::-webkit-scrollbar { width: 6px; height: 6px; }
+        ::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+
+        .dropzone { transition: all 0.3s ease; }
+        .dropzone.dragover {
+            border-color: #10b981;
+            background-color: #ecfdf5;
+            transform: scale(1.02);
+        }
+        .dropzone.has-file {
+            border-color: #10b981;
+            background-color: #f0fdf4;
+        }
+
+        .btn-press:active { transform: scale(0.98); }
+
+        .stat-card { transition: all 0.2s ease; }
+        .stat-card:hover { transform: translateY(-2px); box-shadow: 0 8px 25px -5px rgba(0, 0, 0, 0.1); }
+
+        .spinner {
+            border: 3px solid #e2e8f0;
+            border-top-color: #10b981;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        .section-content {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease-out;
+        }
+        .section-content.open { max-height: 2000px; }
+    </style>
+</head>
+<body class="h-full bg-slate-50 text-slate-800">
+
+    <!-- Upload Screen -->
+    <div id="uploadContainer" class="min-h-screen flex items-center justify-center p-4 bg-gradient-to-br from-emerald-600 via-emerald-700 to-teal-800 relative">
+        <!-- Back Button -->
+        <button onclick="goToTools()" class="absolute top-4 left-4 inline-flex items-center gap-2 px-4 py-2 bg-white/10 backdrop-blur text-white rounded-lg font-medium hover:bg-white/20 focus:outline-none focus:ring-2 focus:ring-white/30">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+            </svg>
+            Back
+        </button>
+
+        <div class="w-full max-w-lg">
+            <!-- Logo/Header -->
+            <div class="text-center mb-8">
+                <div class="inline-flex items-center justify-center w-16 h-16 bg-white/10 backdrop-blur rounded-2xl mb-4">
+                    <svg class="w-8 h-8 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                    </svg>
+                </div>
+                <h1 class="text-3xl font-bold text-white mb-2">Manual Express & Overflow</h1>
+                <p class="text-emerald-200">Upload your Excel file to analyse parking data</p>
+            </div>
+
+            <!-- Upload Card -->
+            <div class="bg-white rounded-2xl shadow-2xl p-8">
+                <div class="dropzone block w-full p-8 border-2 border-dashed border-slate-200 rounded-xl cursor-pointer hover:border-emerald-400 hover:bg-emerald-50/50"
+                     onclick="document.getElementById('fileInput').click()"
+                     ondrop="handleDrop(event)"
+                     ondragover="handleDragOver(event)"
+                     ondragleave="handleDragLeave(event)">
+                    <div class="text-center">
+                        <div class="inline-flex items-center justify-center w-14 h-14 bg-emerald-100 rounded-xl mb-4">
+                            <svg class="w-7 h-7 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                            </svg>
+                        </div>
+                        <p class="text-slate-700 font-medium mb-1">Drop your file here or click to browse</p>
+                        <p class="text-slate-400 text-sm">Supports Excel files (.xlsx, .xls)</p>
+                        <p id="selectedFileName" class="text-emerald-600 font-medium mt-3 hidden"></p>
+                    </div>
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)" class="hidden">
+                </div>
+
+                <button id="processBtn" onclick="processFile()" disabled class="btn-press w-full mt-6 inline-flex items-center justify-center gap-2 px-6 py-3.5 bg-emerald-600 text-white rounded-xl font-semibold hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 disabled:opacity-50 disabled:cursor-not-allowed">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+                    </svg>
+                    Process File
+                </button>
+
+                <div id="uploadLoading" class="hidden mt-6 text-center">
+                    <div class="spinner mx-auto mb-3"></div>
+                    <p class="text-slate-600">Processing your file and extracting data...</p>
+                </div>
+            </div>
+
+            <p class="text-center text-emerald-200/60 text-sm mt-6">Your data is processed locally and never leaves your device</p>
+        </div>
+    </div>
+
+    <!-- Main App Screen -->
+    <div id="mainContainer" class="hidden h-screen flex flex-col">
+        <!-- Header -->
+        <header class="bg-white border-b border-slate-200 px-6 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <div class="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center">
+                            <svg class="w-5 h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                        </div>
+                        <div>
+                            <h1 class="text-xl font-bold text-slate-800">Manual Express & Overflow</h1>
+                            <p class="text-sm text-slate-500" id="carparkNameHeader">Parking Analysis</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="flex items-center gap-3">
+                    <button onclick="goToTools()" class="btn-press inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+                        </svg>
+                        Tools
+                    </button>
+                    <button id="uploadNewFileBtn" onclick="showUploadScreen()" class="btn-press inline-flex items-center gap-2 px-4 py-2.5 bg-slate-100 text-slate-700 rounded-lg font-medium hover:bg-slate-200 focus:outline-none focus:ring-2 focus:ring-slate-300">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+                        </svg>
+                        New File
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <div class="flex-1 flex overflow-hidden">
+            <!-- Sidebar -->
+            <aside class="w-80 bg-white border-r border-slate-200 overflow-y-auto">
+                <div class="p-4 space-y-4">
+                    <!-- Filters Section -->
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
+                            </svg>
+                            Filters
+                        </h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1.5">Account</label>
+                                <div class="relative" id="accountSelectContainer">
+                                    <input type="text" id="accountSearchInput" placeholder="Search accounts..."
+                                           class="w-full px-3 py-2.5 bg-white border border-slate-200 rounded-lg text-sm text-slate-700 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none"
+                                           autocomplete="off">
+                                    <input type="hidden" id="emailFilter" value="">
+                                    <div id="accountDropdown" class="hidden absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                                        <div id="accountOptions" class="py-1"></div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-slate-600 mb-1.5">Overflow Threshold</label>
+                                <input type="number" id="threshold" placeholder="e.g., 50" class="w-full px-3 py-2.5 border border-slate-200 rounded-lg text-sm focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 outline-none">
+                            </div>
+                            <button onclick="applyFilters()" class="btn-press w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                Apply Filters
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Stats Section -->
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+                            </svg>
+                            Statistics
+                        </h3>
+                        <div class="space-y-3">
+                            <div class="stat-card bg-white rounded-lg p-3 border border-slate-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500">Transactions</p>
+                                        <p class="text-lg font-bold text-slate-800" id="totalTransactions">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="stat-card bg-white rounded-lg p-3 border border-slate-200">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                        <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"/>
+                                        </svg>
+                                    </div>
+                                    <div>
+                                        <p class="text-xs text-slate-500">Unique Vehicles</p>
+                                        <p class="text-lg font-bold text-slate-800" id="uniqueVehicles">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Export Section -->
+                    <div class="bg-slate-50 rounded-xl p-4">
+                        <h3 class="text-sm font-semibold text-slate-700 mb-4 flex items-center gap-2">
+                            <svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                            </svg>
+                            Export
+                        </h3>
+                        <div class="space-y-2">
+                            <button onclick="exportOverflowReport()" id="exportOverflowBtn" class="btn-press w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 text-white rounded-lg font-medium text-sm hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-500/50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+                                </svg>
+                                Manual Express & Overflow
+                            </button>
+                            <button onclick="exportExitReport()" id="exportExitBtn" class="btn-press w-full inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 text-white rounded-lg font-medium text-sm hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500/50">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>
+                                </svg>
+                                Exit Report
+                            </button>
+                        </div>
+                        <p class="mt-3 text-xs text-slate-500 text-center">Exit report requires account filter</p>
+                    </div>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="flex-1 overflow-y-auto p-6 bg-slate-50">
+                <!-- Overflow Alert -->
+                <div id="overflowAlert" class="hidden mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4">
+                    <div class="flex items-center gap-2 mb-3">
+                        <svg class="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <span class="font-semibold text-amber-800">Threshold Exceeded</span>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="w-full">
+                            <thead>
+                                <tr class="bg-amber-100/50">
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-amber-800 uppercase">Peak Time</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-amber-800 uppercase">Vehicle Count</th>
+                                    <th class="px-4 py-2 text-left text-xs font-semibold text-amber-800 uppercase">Over Limit</th>
+                                </tr>
+                            </thead>
+                            <tbody id="overflowTableBody" class="divide-y divide-amber-100"></tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Chart -->
+                <div class="bg-white rounded-xl border border-slate-200 p-6">
+                    <div style="position: relative; height: 500px; width: 100%;">
+                        <canvas id="vehicleChart"></canvas>
+                    </div>
+                </div>
+            </main>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let chartInstance = null;
+        let availableEmails = [];
+        let currentData = null;
+        let processedData = null;
+        let fullTransactionData = null;
+        let fullCarpark = null;
+        let filterTimeout = null;
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setupRealTimeFiltering();
+            setupAccountSearch();
+        });
+
+        function setupRealTimeFiltering() {
+            const thresholdInput = document.getElementById('threshold');
+            if (thresholdInput) {
+                thresholdInput.addEventListener('input', function() {
+                    clearTimeout(filterTimeout);
+                    filterTimeout = setTimeout(() => {
+                        applyFilters();
+                    }, 300);
+                });
+            }
+        }
+
+        function setupAccountSearch() {
+            const searchInput = document.getElementById('accountSearchInput');
+            const dropdown = document.getElementById('accountDropdown');
+            const container = document.getElementById('accountSelectContainer');
+
+            // Show dropdown on focus
+            searchInput.addEventListener('focus', function() {
+                renderAccountOptions(this.value);
+                dropdown.classList.remove('hidden');
+            });
+
+            // Filter options on input
+            searchInput.addEventListener('input', function() {
+                renderAccountOptions(this.value);
+                dropdown.classList.remove('hidden');
+            });
+
+            // Hide dropdown when clicking outside
+            document.addEventListener('click', function(e) {
+                if (!container.contains(e.target)) {
+                    dropdown.classList.add('hidden');
+                }
+            });
+        }
+
+        function renderAccountOptions(searchTerm = '') {
+            const optionsContainer = document.getElementById('accountOptions');
+            const search = searchTerm.toLowerCase();
+
+            let html = `<div class="px-3 py-2 text-sm cursor-pointer hover:bg-emerald-50 ${!document.getElementById('emailFilter').value ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-slate-700'}" onclick="selectAccount('', 'All Accounts')">All Accounts</div>`;
+
+            const filteredEmails = availableEmails.filter(email => email.toLowerCase().includes(search));
+
+            filteredEmails.forEach(email => {
+                const isSelected = document.getElementById('emailFilter').value === email;
+                html += `<div class="px-3 py-2 text-sm cursor-pointer hover:bg-emerald-50 ${isSelected ? 'bg-emerald-50 text-emerald-700 font-medium' : 'text-slate-700'}" onclick="selectAccount('${email}', '${email}')">${email}</div>`;
+            });
+
+            if (filteredEmails.length === 0 && search) {
+                html += `<div class="px-3 py-2 text-sm text-slate-400 italic">No accounts found</div>`;
+            }
+
+            optionsContainer.innerHTML = html;
+        }
+
+        function selectAccount(value, displayText) {
+            document.getElementById('emailFilter').value = value;
+            document.getElementById('accountSearchInput').value = displayText === 'All Accounts' ? '' : displayText;
+            document.getElementById('accountSearchInput').placeholder = displayText === 'All Accounts' ? 'Search accounts...' : displayText;
+            document.getElementById('accountDropdown').classList.add('hidden');
+
+            if (fullTransactionData && fullTransactionData.length > 0) {
+                applyFilters();
+            }
+        }
+
+        function showUploadScreen() {
+            document.getElementById('mainContainer').classList.add('hidden');
+            document.getElementById('uploadContainer').classList.remove('hidden');
+            // Reset state
+            selectedFile = null;
+            document.getElementById('fileInput').value = '';
+            document.getElementById('selectedFileName').classList.add('hidden');
+            document.querySelector('.dropzone').classList.remove('has-file');
+            document.getElementById('processBtn').disabled = true;
+        }
+
+        function showMainScreen() {
+            document.getElementById('uploadContainer').classList.add('hidden');
+            document.getElementById('mainContainer').classList.remove('hidden');
+        }
+
+        function populateEmailSelect(emails) {
+            availableEmails = emails;
+            document.getElementById('emailFilter').value = '';
+            document.getElementById('accountSearchInput').value = '';
+            document.getElementById('accountSearchInput').placeholder = 'Search accounts...';
+            renderAccountOptions('');
+        }
+
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showFileSelected(file.name);
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        function showFileSelected(fileName) {
+            const dropzone = document.querySelector('.dropzone');
+            const fileNameEl = document.getElementById('selectedFileName');
+            dropzone.classList.add('has-file');
+            fileNameEl.textContent = fileName;
+            fileNameEl.classList.remove('hidden');
+        }
+
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.dropzone').classList.remove('dragover');
+
+            const file = event.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+                selectedFile = file;
+                showFileSelected(file.name);
+                document.getElementById('processBtn').disabled = false;
+            }
+        }
+
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.dropzone').classList.add('dragover');
+        }
+
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.dropzone').classList.remove('dragover');
+        }
+
+        function processFile() {
+            if (!selectedFile) return;
+
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+
+            document.getElementById('uploadLoading').classList.remove('hidden');
+            document.getElementById('processBtn').disabled = true;
+
+            fetch('/parking/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('uploadLoading').classList.add('hidden');
+
+                if (data.success) {
+                    currentData = data;
+                    processedData = data;
+                    fullTransactionData = data.transaction_data || [];
+                    fullCarpark = data.carpark_name;
+
+                    if (data.emails) {
+                        populateEmailSelect(data.emails);
+                    }
+
+                    // Update header
+                    if (fullCarpark) {
+                        document.getElementById('carparkNameHeader').textContent = fullCarpark;
+                    }
+
+                    // Show main screen and apply filters
+                    showMainScreen();
+                    applyFilters();
+                } else {
+                    alert('Error processing file: ' + data.error);
+                    document.getElementById('processBtn').disabled = false;
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('uploadLoading').classList.add('hidden');
+                document.getElementById('processBtn').disabled = false;
+                alert('Error processing file');
+            });
+        }
+
+        function applyFilters() {
+            if (!fullTransactionData || !fullTransactionData.length) return;
+
+            const emailFilter = document.getElementById('emailFilter').value;
+            const threshold = document.getElementById('threshold').value;
+
+            const filteredData = filterTransactionData(fullTransactionData, { email: emailFilter });
+            const result = generateSummaryFromTransactions(filteredData, threshold);
+            result.carpark_name = fullCarpark;
+
+            showResults(result, threshold);
+        }
+
+        function filterTransactionData(transactions, filters) {
+            return transactions.filter(transaction => {
+                if (filters.email && transaction.email !== filters.email) {
+                    return false;
+                }
+                return true;
+            });
+        }
+
+        function generateSummaryFromTransactions(transactions, threshold) {
+            if (!transactions.length) {
+                return {
+                    success: true,
+                    summary: { total_transactions: 0, unique_vehicles: 0 },
+                    hourly_data: []
+                };
+            }
+
+            const sorted = [...transactions].sort((a, b) => new Date(a.datetime) - new Date(b.datetime));
+
+            let cumulativeCount = 0;
+            const processedTransactions = [];
+
+            sorted.forEach(transaction => {
+                cumulativeCount += transaction.vehicle_change;
+                processedTransactions.push({ ...transaction, cumulative_count: Math.max(0, cumulativeCount) });
+            });
+
+            const hourlyMap = new Map();
+            processedTransactions.forEach(transaction => {
+                const hourKey = transaction.hour;
+                if (!hourlyMap.has(hourKey)) {
+                    hourlyMap.set(hourKey, { hour: hourKey, transactions: [], net_change: 0 });
+                }
+                const hourData = hourlyMap.get(hourKey);
+                hourData.transactions.push(transaction);
+                hourData.net_change += transaction.vehicle_change;
+            });
+
+            const hourlyData = Array.from(hourlyMap.values()).map(hourData => {
+                const lastTransaction = hourData.transactions[hourData.transactions.length - 1];
+                const thresholdVal = threshold ? parseInt(threshold) : null;
+                return {
+                    hour: new Date(hourData.hour).toISOString().slice(0, 16),
+                    count: Math.max(0, lastTransaction.cumulative_count),
+                    net_change: hourData.net_change,
+                    exceeds_threshold: thresholdVal ? lastTransaction.cumulative_count > thresholdVal : false
+                };
+            }).sort((a, b) => new Date(a.hour) - new Date(b.hour));
+
+            const uniquePlates = new Set(processedTransactions.map(t => t.plate));
+
+            return {
+                success: true,
+                summary: {
+                    total_transactions: processedTransactions.length,
+                    unique_vehicles: uniquePlates.size
+                },
+                hourly_data: hourlyData
+            };
+        }
+
+        function showResults(data, threshold) {
+            document.getElementById('totalTransactions').textContent = data.summary.total_transactions.toLocaleString();
+            document.getElementById('uniqueVehicles').textContent = data.summary.unique_vehicles.toLocaleString();
+
+            const overflowAlert = document.getElementById('overflowAlert');
+            if (threshold && data.hourly_data && data.hourly_data.length > 0) {
+                const overflowPeriods = findOverflowPeriods(data.hourly_data, parseInt(threshold));
+                displayOverflowAlert(overflowPeriods, threshold);
+            } else {
+                overflowAlert.classList.add('hidden');
+            }
+
+            updateChart(data.hourly_data, threshold, data.carpark_name);
+        }
+
+        function findOverflowPeriods(hourlyData, threshold) {
+            const periods = [];
+            let inOverflow = false;
+            let currentPeriodPeak = null;
+
+            hourlyData.forEach(hour => {
+                const isOverThreshold = hour.count > threshold;
+                if (isOverThreshold && !inOverflow) {
+                    inOverflow = true;
+                    currentPeriodPeak = hour;
+                } else if (isOverThreshold && inOverflow) {
+                    if (hour.count > currentPeriodPeak.count) currentPeriodPeak = hour;
+                } else if (!isOverThreshold && inOverflow) {
+                    periods.push(currentPeriodPeak);
+                    inOverflow = false;
+                    currentPeriodPeak = null;
+                }
+            });
+            if (inOverflow && currentPeriodPeak) periods.push(currentPeriodPeak);
+            return periods;
+        }
+
+        function displayOverflowAlert(periods, threshold) {
+            const alert = document.getElementById('overflowAlert');
+            const tableBody = document.getElementById('overflowTableBody');
+
+            if (periods.length > 0) {
+                tableBody.innerHTML = '';
+                periods.forEach(period => {
+                    const row = document.createElement('tr');
+                    row.innerHTML = `
+                        <td class="px-4 py-2 text-sm text-amber-800">${new Date(period.hour).toLocaleString()}</td>
+                        <td class="px-4 py-2 text-sm font-semibold text-amber-800">${period.count}</td>
+                        <td class="px-4 py-2 text-sm text-red-600 font-semibold">+${period.count - parseInt(threshold)}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                alert.classList.remove('hidden');
+            } else {
+                alert.classList.add('hidden');
+            }
+        }
+
+        function updateChart(hourlyData, threshold, carparkName) {
+            const ctx = document.getElementById('vehicleChart').getContext('2d');
+
+            const labels = hourlyData.map(item => {
+                const date = new Date(item.hour);
+                return `${date.getMonth() + 1}/${date.getDate()} ${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+            });
+
+            const data = hourlyData.map(item => item.count);
+            const thresholdValue = threshold ? parseInt(threshold) : null;
+
+            if (chartInstance) {
+                chartInstance.data.labels = labels;
+                chartInstance.data.datasets[0].data = data;
+
+                if (thresholdValue) {
+                    if (chartInstance.data.datasets.length > 1) {
+                        chartInstance.data.datasets[1].data = new Array(data.length).fill(thresholdValue);
+                    } else {
+                        chartInstance.data.datasets.push({
+                            label: 'Threshold',
+                            data: new Array(data.length).fill(thresholdValue),
+                            borderColor: '#ef4444',
+                            backgroundColor: 'transparent',
+                            borderDash: [5, 5],
+                            pointRadius: 0,
+                            fill: false,
+                            tension: 0
+                        });
+                    }
+                } else if (chartInstance.data.datasets.length > 1) {
+                    chartInstance.data.datasets.splice(1, 1);
+                }
+
+                chartInstance.options.plugins.title.text = carparkName ? `${carparkName} - Hourly Vehicle Count` : 'Hourly Vehicle Count';
+                chartInstance.update('none');
+                return;
+            }
+
+            const datasets = [{
+                label: 'Vehicle Count',
+                data: data,
+                borderColor: '#10b981',
+                backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                tension: 0.1,
+                fill: true
+            }];
+
+            if (thresholdValue) {
+                datasets.push({
+                    label: 'Threshold',
+                    data: new Array(data.length).fill(thresholdValue),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    pointRadius: 0,
+                    fill: false,
+                    tension: 0
+                });
+            }
+
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: { labels: labels, datasets: datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    animation: { duration: 300 },
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: carparkName ? `${carparkName} - Hourly Vehicle Count` : 'Hourly Vehicle Count',
+                            font: { size: 16, weight: '600' },
+                            color: '#1e293b'
+                        },
+                        legend: { display: true, position: 'top', labels: { usePointStyle: true, padding: 20 } }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, title: { display: true, text: 'Vehicle Count', color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' } },
+                        x: { title: { display: true, text: 'Time', color: '#64748b' }, grid: { color: 'rgba(0,0,0,0.05)' }, ticks: { maxTicksLimit: 12 } }
+                    },
+                    elements: { point: { radius: 2, hoverRadius: 5 }, line: { borderWidth: 2 } }
+                }
+            });
+        }
+
+        function exportOverflowReport() {
+            if (!fullTransactionData || !fullTransactionData.length) {
+                alert('No data available to export');
+                return;
+            }
+
+            const threshold = document.getElementById('threshold').value;
+            if (!threshold) {
+                alert('Please set a threshold value to export overflow report');
+                return;
+            }
+
+            const emailFilter = document.getElementById('emailFilter').value;
+            const filteredData = filterTransactionData(fullTransactionData, { email: emailFilter });
+            const result = generateSummaryFromTransactions(filteredData, threshold);
+            const overflowPeriods = findOverflowPeriodsFromHourlyData(result.hourly_data, parseInt(threshold));
+
+            let csv = 'Period Start,Peak Time,Peak Count,Excess Over Limit,Account Filter\n';
+            overflowPeriods.forEach(period => {
+                csv += `"${new Date(period.start.hour).toLocaleString()}","${new Date(period.peak.hour).toLocaleString()}",${period.peak.count},${period.peak.count - parseInt(threshold)},"${emailFilter || 'All Accounts'}"\n`;
+            });
+
+            downloadCSV(csv, `overflow_report_${new Date().toISOString().slice(0, 10)}.csv`);
+        }
+
+        function exportExitReport() {
+            const emailFilter = document.getElementById('emailFilter').value;
+            if (!emailFilter) {
+                alert('Please select a specific account to export exit report');
+                return;
+            }
+
+            const filteredData = filterTransactionData(fullTransactionData, { email: emailFilter });
+            const exitTransactions = filteredData.filter(t => t.action === 'Exit');
+
+            if (exitTransactions.length === 0) {
+                alert('No exit transactions found');
+                return;
+            }
+
+            let csv = 'Date/Time,Account,User Name,License Plate,Lane,Location/Group\n';
+            exitTransactions.forEach(t => {
+                csv += `"${new Date(t.datetime).toLocaleString()}","${t.email || ''}","${t.user || ''}","${t.plate || ''}","${t.lane || ''}","${t.group || ''}"\n`;
+            });
+
+            downloadCSV(csv, `exits_${emailFilter.replace(/[@.]/g, '_')}_${new Date().toISOString().slice(0, 10)}.csv`);
+        }
+
+        function findOverflowPeriodsFromHourlyData(hourlyData, threshold) {
+            const periods = [];
+            let inOverflow = false, start = null, peak = null;
+
+            hourlyData.forEach(hour => {
+                const over = hour.count > threshold;
+                if (over && !inOverflow) { inOverflow = true; start = hour; peak = hour; }
+                else if (over && inOverflow && hour.count > peak.count) { peak = hour; }
+                else if (!over && inOverflow) { periods.push({ start, peak }); inOverflow = false; }
+            });
+            if (inOverflow && peak) periods.push({ start, peak });
+            return periods;
+        }
+
+        function downloadCSV(content, filename) {
+            const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function goToTools() {
+            // Send message to parent window to go back to tool selector
+            if (window.parent !== window) {
+                window.parent.postMessage({ action: 'goToTools' }, '*');
+            }
+        }
+    </script>
+</body>
+</html>

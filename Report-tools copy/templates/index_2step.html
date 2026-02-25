@@ -1,0 +1,1213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Overflow Report</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
+        
+        .app-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e2e8f0;
+            padding: 1rem 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+        
+        .header-content {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 0 2rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+        
+        .logo {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .status-indicator {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.875rem;
+            color: #64748b;
+        }
+        
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #ef4444;
+        }
+        
+        .status-dot.ready {
+            background: #10b981;
+        }
+        
+        /* Main Content */
+        .main-content {
+            flex: 1;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 2rem;
+            width: 100%;
+        }
+        
+        /* Step-by-step workflow */
+        .workflow {
+            display: flex;
+            flex-direction: column;
+            gap: 2rem;
+        }
+        
+        .step {
+            background: white;
+            border-radius: 12px;
+            border: 2px solid transparent;
+            transition: all 0.3s ease;
+            overflow: visible;
+        }
+        
+        .step.active {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .step.completed {
+            border-color: #10b981;
+        }
+        
+        .step.disabled {
+            opacity: 0.5;
+            pointer-events: none;
+        }
+        
+        .step-header {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            padding: 1.5rem 2rem;
+            border-bottom: 1px solid #f1f5f9;
+            cursor: pointer;
+        }
+        
+        .step-number {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: #e2e8f0;
+            color: #64748b;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+            transition: all 0.3s ease;
+        }
+        
+        .step.active .step-number {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .step.completed .step-number {
+            background: #10b981;
+            color: white;
+        }
+        
+        .step-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: #1e293b;
+        }
+        
+        .step.disabled .step-title {
+            color: #94a3b8;
+        }
+        
+        .step-content {
+            padding: 2rem;
+        }
+        
+        /* Upload Area */
+        .upload-zone {
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            padding: 3rem;
+            text-align: center;
+            transition: all 0.3s ease;
+            cursor: pointer;
+            position: relative;
+            background: #f8fafc;
+        }
+        
+        .upload-zone:hover,
+        .upload-zone.dragover {
+            border-color: #3b82f6;
+            background: #f0f9ff;
+        }
+        
+        .upload-zone.has-file {
+            border-color: #10b981;
+            background: #f0fdf4;
+        }
+        
+        .upload-icon {
+            width: 48px;
+            height: 48px;
+            margin: 0 auto 1rem;
+            color: #64748b;
+        }
+        
+        .upload-text {
+            font-size: 1.125rem;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+        }
+        
+        .upload-subtext {
+            color: #64748b;
+            font-size: 0.875rem;
+        }
+        
+        .file-info {
+            display: none;
+            align-items: center;
+            gap: 0.75rem;
+            margin-top: 1rem;
+            padding: 1rem;
+            background: #f1f5f9;
+            border-radius: 6px;
+            justify-content: center;
+        }
+        
+        .file-info.show {
+            display: flex;
+        }
+        
+        /* Filters Section */
+        .filters-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+        
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        
+        .filter-label {
+            font-weight: 500;
+            color: #374151;
+            font-size: 0.875rem;
+        }
+        
+        .filter-input {
+            padding: 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            font-size: 0.875rem;
+            transition: all 0.2s ease;
+            background: white;
+        }
+        
+        .filter-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        /* Custom Select */
+        .custom-select {
+            position: relative;
+        }
+        
+        .select-trigger {
+            width: 100%;
+            padding: 0.75rem 2.5rem 0.75rem 1rem;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            transition: all 0.2s ease;
+        }
+        
+        .select-trigger:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+        
+        .select-arrow {
+            position: absolute;
+            right: 1rem;
+            top: 50%;
+            transform: translateY(-50%);
+            transition: transform 0.2s ease;
+            color: #6b7280;
+        }
+        
+        .custom-select.open .select-arrow {
+            transform: translateY(-50%) rotate(180deg);
+        }
+        
+        .select-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #d1d5db;
+            border-top: none;
+            border-radius: 0 0 6px 6px;
+            max-height: 250px;
+            overflow-y: auto;
+            z-index: 1000;
+            display: none;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+        
+        .custom-select.open .select-dropdown {
+            display: block;
+        }
+        
+        .select-option {
+            padding: 0.75rem 1rem;
+            cursor: pointer;
+            transition: background-color 0.15s ease;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .select-option:last-child {
+            border-bottom: none;
+        }
+        
+        .select-option:hover {
+            background: #f9fafb;
+        }
+        
+        .select-option.selected {
+            background: #eff6ff;
+            color: #1d4ed8;
+            font-weight: 500;
+        }
+        
+        .select-search {
+            padding: 0.75rem 1rem;
+            border: none;
+            border-bottom: 1px solid #e5e7eb;
+            width: 100%;
+            font-size: 0.875rem;
+            outline: none;
+            background: #f9fafb;
+        }
+        
+        .select-search:focus {
+            background: white;
+            border-bottom-color: #3b82f6;
+        }
+        
+        .select-options {
+            max-height: 180px;
+            overflow-y: auto;
+        }
+        
+        /* Action Buttons */
+        .action-bar {
+            display: flex;
+            gap: 1rem;
+            align-items: center;
+            justify-content: center;
+            margin-top: 2rem;
+        }
+        
+        .btn {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 0.875rem;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .btn-primary {
+            background: #3b82f6;
+            color: white;
+        }
+        
+        .btn-primary:hover:not(:disabled) {
+            background: #2563eb;
+            transform: translateY(-1px);
+        }
+        
+        .btn-primary:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-success {
+            background: #10b981;
+            color: white;
+        }
+        
+        .btn-success:hover:not(:disabled) {
+            background: #059669;
+        }
+        
+        .btn-info {
+            background: #0ea5e9;
+            color: white;
+        }
+        
+        .btn-info:hover:not(:disabled) {
+            background: #0284c7;
+        }
+        
+        /* Loading State */
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 2rem;
+        }
+        
+        .spinner {
+            width: 32px;
+            height: 32px;
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #3b82f6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 1rem;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        /* Results Section */
+        .results {
+            display: none;
+            margin-top: 2rem;
+        }
+        
+        .results-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin-bottom: 2rem;
+        }
+        
+        .metric-card {
+            background: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            border: 1px solid #e5e7eb;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+        }
+        
+        .metric-label {
+            font-size: 0.875rem;
+            color: #6b7280;
+            margin-top: 0.25rem;
+        }
+        
+        /* Alert Section */
+        .alert {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            border-radius: 8px;
+            padding: 1rem;
+            margin-bottom: 2rem;
+            display: none;
+        }
+        
+        .alert.critical {
+            background: #fee2e2;
+            border-color: #ef4444;
+        }
+        
+        .alert-header {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .alert-icon {
+            font-size: 1.25rem;
+        }
+        
+        .alert-title {
+            font-weight: 600;
+            color: #92400e;
+        }
+        
+        .alert.critical .alert-title {
+            color: #dc2626;
+        }
+        
+        .overflow-table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+        
+        .overflow-table th {
+            background: #f9fafb;
+            padding: 0.75rem;
+            text-align: left;
+            font-weight: 600;
+            color: #374151;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        
+        .overflow-table td {
+            padding: 0.75rem;
+            border-bottom: 1px solid #f3f4f6;
+        }
+        
+        .overflow-table tr:last-child td {
+            border-bottom: none;
+        }
+        
+        /* Export Actions */
+        .export-actions {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            flex-wrap: wrap;
+            margin-top: 2rem;
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .step-content {
+                padding: 1.5rem;
+            }
+            
+            .filters-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .results-grid {
+                grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            }
+            
+            .export-actions {
+                flex-direction: column;
+            }
+        }
+        
+        /* Utilities */
+        .hidden {
+            display: none !important;
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.3s ease;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">🚗 Overflow Report</div>
+                <div class="status-indicator">
+                    <div class="status-dot" id="statusDot"></div>
+                    <span id="statusText">Ready to upload</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div class="workflow">
+                <!-- Step 1: Upload & Process File -->
+                <div class="step active" id="step1">
+                    <div class="step-header">
+                        <div class="step-number">1</div>
+                        <div class="step-title">Upload & Process Data File</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="upload-zone" onclick="document.getElementById('fileInput').click()" 
+                             ondrop="handleDrop(event)" 
+                             ondragover="handleDragOver(event)" 
+                             ondragleave="handleDragLeave(event)">
+                            <div class="upload-icon">📊</div>
+                            <div class="upload-text">Click to upload or drag & drop</div>
+                            <div class="upload-subtext">Excel files (.xlsx, .xls) up to 16MB</div>
+                            <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="handleFileSelect(event)" hidden>
+                            
+                            <div class="file-info" id="fileInfo">
+                                <span>📄</span>
+                                <span id="fileName"></span>
+                                <span style="color: #10b981; font-weight: 500;">✓ Ready</span>
+                            </div>
+                        </div>
+                        
+                        <div class="action-bar">
+                            <button class="btn btn-primary" onclick="processFile()" id="processBtn" disabled>
+                                <span>📤</span>
+                                Process File
+                            </button>
+                        </div>
+
+                        <div class="loading" id="uploadLoading">
+                            <div class="spinner"></div>
+                            <p>Processing your file and extracting account data...</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: Filter, Display & Export -->
+                <div class="step disabled" id="step2">
+                    <div class="step-header">
+                        <div class="step-number">2</div>
+                        <div class="step-title">Filter, Display & Export</div>
+                    </div>
+                    <div class="step-content">
+                        <div class="filters-grid">
+                            <div class="filter-group">
+                                <label class="filter-label">Account Filter</label>
+                                <div class="custom-select" id="emailSelect">
+                                    <div class="select-trigger" tabindex="0">
+                                        <span id="selectedEmail">All Accounts</span>
+                                        <span class="select-arrow">▼</span>
+                                    </div>
+                                    <div class="select-dropdown" id="emailDropdown">
+                                        <input type="text" class="select-search" id="emailSearch" placeholder="Search accounts...">
+                                        <div class="select-options" id="emailOptions">
+                                            <div class="select-option selected" data-value="">All Accounts</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <input type="hidden" id="emailFilter" value="">
+                            </div>
+                            
+                            <div class="filter-group">
+                                <label class="filter-label">Overflow Threshold</label>
+                                <input type="number" class="filter-input" id="threshold" placeholder="e.g., 50">
+                            </div>
+                        </div>
+                        
+                        <!-- Results Section -->
+                        <div class="results" id="results" style="display: none;">
+                            <div class="results-grid">
+                                <div class="metric-card">
+                                    <div class="metric-value" id="totalTransactions">-</div>
+                                    <div class="metric-label">Total Transactions</div>
+                                </div>
+                                <div class="metric-card">
+                                    <div class="metric-value" id="uniqueVehicles">-</div>
+                                    <div class="metric-label">Unique Vehicles</div>
+                                </div>
+                            </div>
+                            
+                            <!-- Overflow Alert -->
+                            <div class="alert" id="overflowAlert">
+                                <div class="alert-header">
+                                    <span class="alert-icon">⚠️</span>
+                                    <span class="alert-title">Threshold Exceeded</span>
+                                </div>
+                                <table class="overflow-table" id="overflowTable">
+                                    <thead>
+                                        <tr>
+                                            <th>Peak Time</th>
+                                            <th>Vehicle Count</th>
+                                            <th>Over Limit</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="overflowTableBody">
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Chart -->
+                            <div style="background: white; padding: 1.5rem; border-radius: 8px; border: 1px solid #e5e7eb; margin-bottom: 2rem;">
+                                <canvas id="vehicleChart" width="400" height="200"></canvas>
+                            </div>
+                            
+                            <!-- Export Actions -->
+                            <div class="export-actions">
+                                <button class="btn btn-success" onclick="exportOverflowReport()" id="exportOverflowBtn">
+                                    <span>📋</span>
+                                    Export Overflow Report
+                                </button>
+                                
+                                <button class="btn btn-info" onclick="exportExitReport()" id="exportExitBtn">
+                                    <span>🚪</span>
+                                    Export Exit Report
+                                </button>
+                            </div>
+                            
+                            <div style="margin-top: 1rem; padding: 1rem; background: #f8fafc; border-radius: 6px; font-size: 0.875rem; color: #64748b; text-align: center;">
+                                <p><strong>Overflow Report:</strong> Shows peak vehicle counts for each period when the threshold was exceeded.</p>
+                                <p><strong>Exit Report:</strong> Lists all exit transactions for the selected account (requires account filter).</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script>
+        let selectedFile = null;
+        let chartInstance = null;
+        let availableEmails = [];
+        let currentData = null;
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeEmailSelect();
+        });
+
+        // Status management
+        function updateStatus(status, message) {
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            
+            statusDot.className = `status-dot ${status}`;
+            statusText.textContent = message;
+        }
+
+        function setStepState(stepNumber, state) {
+            const step = document.getElementById(`step${stepNumber}`);
+            step.className = `step ${state}`;
+        }
+
+        // Email Select Functionality
+        function initializeEmailSelect() {
+            const select = document.getElementById('emailSelect');
+            const trigger = select.querySelector('.select-trigger');
+            const dropdown = select.querySelector('.select-dropdown');
+            const searchInput = document.getElementById('emailSearch');
+            
+            trigger.addEventListener('click', () => {
+                select.classList.toggle('open');
+                if (select.classList.contains('open')) {
+                    setTimeout(() => searchInput.focus(), 100);
+                }
+            });
+            
+            searchInput.addEventListener('click', (e) => {
+                e.stopPropagation();
+            });
+            
+            document.addEventListener('click', (e) => {
+                if (!select.contains(e.target)) {
+                    select.classList.remove('open');
+                    searchInput.value = '';
+                    showAllOptions();
+                }
+            });
+            
+            // Threshold change handler - auto refresh when threshold changes
+            document.getElementById('threshold').addEventListener('input', function() {
+                if (currentData) {
+                    const threshold = this.value;
+                    displayResults(currentData, threshold);
+                }
+            });
+        }
+        
+        function setupEmailSearch() {
+            const searchInput = document.getElementById('emailSearch');
+            const optionsContainer = document.getElementById('emailOptions');
+            
+            searchInput.addEventListener('input', (e) => {
+                const searchTerm = e.target.value.toLowerCase();
+                const options = optionsContainer.querySelectorAll('.select-option');
+                
+                options.forEach(option => {
+                    const optionText = option.textContent.toLowerCase();
+                    if (optionText.includes(searchTerm)) {
+                        option.style.display = 'block';
+                    } else {
+                        option.style.display = 'none';
+                    }
+                });
+            });
+        }
+        
+        function showAllOptions() {
+            const optionsContainer = document.getElementById('emailOptions');
+            const options = optionsContainer.querySelectorAll('.select-option');
+            options.forEach(option => {
+                option.style.display = 'block';
+            });
+        }
+
+        function populateEmailSelect(emails) {
+            const optionsContainer = document.getElementById('emailOptions');
+            const selectedSpan = document.getElementById('selectedEmail');
+            const hiddenInput = document.getElementById('emailFilter');
+            const searchInput = document.getElementById('emailSearch');
+            
+            // Clear existing options
+            optionsContainer.innerHTML = '';
+            availableEmails = emails;
+            
+            // Create "All Accounts" option first
+            const allAccountsOption = document.createElement('div');
+            allAccountsOption.className = 'select-option selected';
+            allAccountsOption.setAttribute('data-value', '');
+            allAccountsOption.textContent = 'All Accounts';
+            
+            allAccountsOption.addEventListener('click', () => {
+                selectEmailOption(allAccountsOption, 'All Accounts', '');
+            });
+            
+            optionsContainer.appendChild(allAccountsOption);
+            
+            // Create individual email options
+            emails.forEach(email => {
+                const option = document.createElement('div');
+                option.className = 'select-option';
+                option.setAttribute('data-value', email);
+                option.textContent = email;
+                
+                option.addEventListener('click', () => {
+                    selectEmailOption(option, email, email);
+                });
+                
+                optionsContainer.appendChild(option);
+            });
+            
+            // Setup search functionality
+            setupEmailSearch();
+        }
+
+        function selectEmailOption(selectedOption, displayText, filterValue) {
+            const optionsContainer = document.getElementById('emailOptions');
+            const selectedSpan = document.getElementById('selectedEmail');
+            const hiddenInput = document.getElementById('emailFilter');
+            const searchInput = document.getElementById('emailSearch');
+            
+            // Update selection
+            optionsContainer.querySelectorAll('.select-option').forEach(opt => {
+                opt.classList.remove('selected');
+            });
+            selectedOption.classList.add('selected');
+            
+            selectedSpan.textContent = displayText;
+            hiddenInput.value = filterValue;
+            
+            // Clear search and close dropdown
+            searchInput.value = '';
+            document.getElementById('emailSelect').classList.remove('open');
+            showAllOptions();
+            
+            // Auto-refresh results if data exists
+            if (currentData) {
+                const threshold = document.getElementById('threshold').value;
+                displayResults(currentData, threshold);
+            }
+        }
+
+        // File handling
+        function handleFileSelect(event) {
+            const file = event.target.files[0];
+            if (file) {
+                selectedFile = file;
+                showFileSelected(file.name);
+                document.getElementById('processBtn').disabled = false;
+                updateStatus('ready', 'File selected - Ready to process');
+            }
+        }
+        
+        function showFileSelected(fileName) {
+            const uploadZone = document.querySelector('.upload-zone');
+            const fileInfo = document.getElementById('fileInfo');
+            const fileNameSpan = document.getElementById('fileName');
+            
+            uploadZone.classList.add('has-file');
+            fileNameSpan.textContent = fileName;
+            fileInfo.classList.add('show');
+        }
+        
+        function handleDrop(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.upload-zone').classList.remove('dragover');
+            
+            const file = event.dataTransfer.files[0];
+            if (file && (file.name.endsWith('.xlsx') || file.name.endsWith('.xls'))) {
+                selectedFile = file;
+                showFileSelected(file.name);
+                document.getElementById('processBtn').disabled = false;
+                updateStatus('ready', 'File selected - Ready to process');
+            }
+        }
+        
+        function handleDragOver(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.upload-zone').classList.add('dragover');
+        }
+        
+        function handleDragLeave(event) {
+            event.preventDefault();
+            event.stopPropagation();
+            document.querySelector('.upload-zone').classList.remove('dragover');
+        }
+
+        // Process file and extract email data
+        function processFile() {
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            
+            document.getElementById('uploadLoading').style.display = 'block';
+            document.getElementById('processBtn').disabled = true;
+            updateStatus('ready', 'Processing file...');
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('uploadLoading').style.display = 'none';
+                
+                if (data.success) {
+                    currentData = data;
+                    
+                    // Populate email dropdown if emails are available
+                    if (data.emails) {
+                        populateEmailSelect(data.emails);
+                    }
+                    
+                    // Enable step 2 and show initial results
+                    setStepState(1, 'completed');
+                    setStepState(2, 'active');
+                    updateStatus('ready', 'File processed - Configure filters');
+                    
+                    // Show results immediately with current data
+                    displayResults(data, document.getElementById('threshold').value);
+                } else {
+                    alert('Error processing file: ' + data.error);
+                    document.getElementById('processBtn').disabled = false;
+                    updateStatus('error', 'Processing failed');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                document.getElementById('uploadLoading').style.display = 'none';
+                document.getElementById('processBtn').disabled = false;
+                alert('Error processing file');
+                updateStatus('error', 'Processing failed');
+            });
+        }
+
+        // Display results
+        function displayResults(data, threshold) {
+            if (!data || !data.success) return;
+            
+            // Get current filter values
+            const emailFilter = document.getElementById('emailFilter').value;
+            
+            // Re-analyze with current filters
+            analyzeWithFilters(emailFilter, threshold);
+        }
+
+        function analyzeWithFilters(emailFilter, threshold) {
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('email_filter', emailFilter || '');
+            formData.append('threshold', threshold || '');
+            
+            fetch('/upload', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    currentData = data;
+                    showResults(data, threshold);
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+            });
+        }
+
+        function showResults(data, threshold) {
+            // Update metrics
+            document.getElementById('totalTransactions').textContent = data.summary.total_transactions.toLocaleString();
+            document.getElementById('uniqueVehicles').textContent = data.summary.unique_vehicles.toLocaleString();
+            
+            // Show results section
+            document.getElementById('results').style.display = 'block';
+            
+            // Handle overflow detection
+            if (threshold && data.hourly_data) {
+                const overflowPeriods = findOverflowPeriods(data.hourly_data, parseInt(threshold));
+                displayOverflowAlert(overflowPeriods, threshold);
+            } else {
+                document.getElementById('overflowAlert').style.display = 'none';
+            }
+            
+            // Update chart
+            updateChart(data.hourly_data, threshold);
+        }
+
+        function findOverflowPeriods(hourlyData, threshold) {
+            const periods = [];
+            let inOverflow = false;
+            let currentPeriodPeak = null;
+            
+            hourlyData.forEach(hour => {
+                const isOverThreshold = hour.count > threshold;
+                
+                if (isOverThreshold && !inOverflow) {
+                    inOverflow = true;
+                    currentPeriodPeak = hour;
+                } else if (isOverThreshold && inOverflow) {
+                    if (hour.count > currentPeriodPeak.count) {
+                        currentPeriodPeak = hour;
+                    }
+                } else if (!isOverThreshold && inOverflow) {
+                    periods.push(currentPeriodPeak);
+                    inOverflow = false;
+                    currentPeriodPeak = null;
+                }
+            });
+            
+            if (inOverflow && currentPeriodPeak) {
+                periods.push(currentPeriodPeak);
+            }
+            
+            return periods;
+        }
+
+        function displayOverflowAlert(periods, threshold) {
+            const alert = document.getElementById('overflowAlert');
+            const tableBody = document.getElementById('overflowTableBody');
+            
+            if (periods.length > 0) {
+                tableBody.innerHTML = '';
+                periods.forEach(period => {
+                    const row = document.createElement('tr');
+                    const peakTime = new Date(period.hour).toLocaleString();
+                    const excess = period.count - parseInt(threshold);
+                    
+                    row.innerHTML = `
+                        <td>${peakTime}</td>
+                        <td>${period.count}</td>
+                        <td>+${excess}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+                alert.style.display = 'block';
+            } else {
+                alert.style.display = 'none';
+            }
+        }
+
+        function updateChart(hourlyData, threshold) {
+            const ctx = document.getElementById('vehicleChart').getContext('2d');
+            
+            if (chartInstance) {
+                chartInstance.destroy();
+            }
+            
+            const labels = hourlyData.map(item => {
+                const date = new Date(item.hour);
+                return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            });
+            
+            const data = hourlyData.map(item => item.count);
+            
+            const datasets = [{
+                label: 'Vehicle Count',
+                data: data,
+                borderColor: '#3b82f6',
+                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                tension: 0.1,
+                fill: true
+            }];
+            
+            if (threshold) {
+                datasets.push({
+                    label: 'Threshold',
+                    data: new Array(data.length).fill(parseInt(threshold)),
+                    borderColor: '#ef4444',
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5],
+                    pointRadius: 0
+                });
+            }
+            
+            chartInstance = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: datasets
+                },
+                options: {
+                    responsive: true,
+                    plugins: {
+                        title: {
+                            display: true,
+                            text: 'Hourly Vehicle Count'
+                        }
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: 'Vehicle Count'
+                            }
+                        },
+                        x: {
+                            title: {
+                                display: true,
+                                text: 'Time'
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // Export functions
+        function exportOverflowReport() {
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('threshold', document.getElementById('threshold').value);
+            formData.append('email_filter', document.getElementById('emailFilter').value);
+            
+            fetch('/export-overflow', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Export failed');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `overflow_report_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                alert('Failed to export overflow report');
+            });
+        }
+
+        function exportExitReport() {
+            const emailFilter = document.getElementById('emailFilter').value;
+            if (!emailFilter) {
+                alert('Please select a specific account to export exit report');
+                return;
+            }
+            
+            if (!selectedFile) return;
+            
+            const formData = new FormData();
+            formData.append('file', selectedFile);
+            formData.append('email_filter', emailFilter);
+            
+            fetch('/export-exits', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.blob();
+                } else {
+                    throw new Error('Export failed');
+                }
+            })
+            .then(blob => {
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `exits_${emailFilter.replace('@', '_').replace('.', '_')}_${new Date().toISOString().slice(0, 10)}.csv`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                window.URL.revokeObjectURL(url);
+            })
+            .catch(error => {
+                console.error('Export error:', error);
+                alert('Failed to export exit report');
+            });
+        }
+    </script>
+</body>
+</html>

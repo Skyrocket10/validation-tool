@@ -1,0 +1,60 @@
+{
+  "name": "validation-tool",
+  "version": "1.0.0",
+  "description": "Validation App",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "rebuild": "electron-rebuild",
+    "postinstall": "electron-rebuild",
+    "package": "electron-packager . ValidationApp --platform=win32 --arch=x64 --out=dist --overwrite",
+    "package-mac": "electron-packager . ValidationApp --platform=darwin --arch=x64 --out=dist --overwrite",
+    "build": "electron-builder",
+    "build:win": "electron-builder --win",
+    "build:mac": "electron-builder --mac"
+  },
+  "author": "Jonathon Keane <Jonathon.keane@yahoo.com>",
+  "build": {
+    "appId": "com.jonathonkeane.hotelvalidationreporter",
+    "productName": "Parkbase - Hotel Validation Reporter",
+    "files": [
+      "main.js",
+      "backend.js",
+      "database.js",
+      "parking-backend.js",
+      "public/**/*",
+      "assets/**/*"
+    ],
+    "mac": {
+      "icon": "assets/icon.icns"
+    },
+    "win": {
+      "icon": "assets/icon.ico",
+      "target": "nsis"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "directories": {
+      "output": "release"
+    },
+    "npmRebuild": true,
+    "buildDependenciesFromSource": true
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "exceljs": "^4.2.1",
+    "express": "^4.17.1",
+    "mkdirp": "^3.0.1",
+    "moment": "^2.29.1",
+    "multer": "^1.4.2",
+    "xlsx": "^0.18.5"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^3.7.2",
+    "electron": "^31.1.0",
+    "electron-builder": "^24.13.3",
+    "electron-packager": "^17.1.2"
+  }
+}
