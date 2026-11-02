@@ -52,9 +52,13 @@
     "xlsx": "^0.18.5"
   },
   "devDependencies": {
-    "@electron/rebuild": "^3.7.2",
+    "@electron/rebuild": "^4.2.1",
     "electron": "^31.1.0",
     "electron-builder": "^24.13.3",
     "electron-packager": "^17.1.2"
+  },
+  "allowScripts": {
+    "electron@31.1.0": true,
+    "better-sqlite3@12.6.2": true
   }
 }
